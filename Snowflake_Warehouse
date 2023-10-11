@@ -1,0 +1,21 @@
+select
+    current_role();
+select
+    current_warehouse();
+select
+    current_database();
+
+    use role sysadmin;
+    create warehouse CH2_WH with warehouse_size = medium
+    auto_suspend = 300 auto_resume = true initially_suspended = true;
+
+    use role sysadmin;
+    alter warehouse CH2_WH
+    set warehouse_size = Large;
+
+create or replace warehouse ACCOUNTING_WH
+with warehouse_size = medium min_cluster_count =1
+max_cluster_count =6 scaling_policy= 'standard';
+
+alter session set use_cached_result=false;
+
