@@ -1,0 +1,65 @@
+// create a database
+create database if not exists my_db;
+
+//create a table with no clusterkey
+create or replace table MYDB.PUBLIC.customer_noncluster(
+c_custkey number(38),
+c_name varchar(25),
+c_address varchar(40),
+c_nationkey number(38),
+c_phone varchar(15),
+c_acctbal number(12),
+c_mksagment varchar(10),
+c_comment varchar(117)
+);
+
+show grants on database SNOWFLAKE_SAMPLE_DATA;
+
+//insert data into non - clustered table
+insert into MYDB.PUBLIC.CUSTOMER_NONCLUSTER
+select * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF1000.customer;
+
+//create a table with cluster key
+create or replace table MYDB.PUBLIC.customer_cluster(
+c_custkey number(38),
+c_name varchar(25),
+c_address varchar(40),
+c_nationkey number(38),
+c_phone varchar(15),
+c_acctbal number(12),
+c_mksegment varchar(10),
+c_comment varchar(117)
+);
+
+alter table MYDB.PUBLIC.CUSTOMER_CLUSTER
+cluster by (c_nationkey);
+
+//insert data into clustered table
+
+insert into MYDB.PUBLIC.CUSTOMER_CLUSTER
+select * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF1000.customer;
+
+//observe time taken and number of partiontions
+select * from MYDB.PUBLIC.CUSTOMER_NONCLUSTER where c_nationkey =2; //took 8.0sec
+select * from MYDB.PUBLIC.CUSTOMER_CLUSTER where c_nationkey =2; // took 6.8s
+
+create or replace table MYDB.PUBLIC.orders_noncluster
+as select * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF100.orders;
+
+create or replace table MYDB.PUBLIC.orders_cluster
+as select * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF100.orders;
+
+//Add cluster key to the taBLE
+alter table MYDB.PUBLIC.orders_cluster cluster by (year(o_orderdate));
+
+// observe time take and no:of partiotions scanned
+select * from MYDB.PUBLIC.ORDERS_NONCLUSTER where year(o_orderdate)=1995; //11s
+select * from MYDB.PUBLIC.ORDERS_CLUSTER where year(o_orderdate)=1995; // 11s
+
+//Alter table to add multpile culster key
+
+alter table MYDB.PUBLIC.orders_cluster cluster by (year(o_orderdate),o_orderpriority);
+
+//observe time take and no of pertitions scanned
+select * from MYDB.PUBLIC.ORDERS_NONCLUSTER where year(o_orderdate)=1996 and o_orderpriority='1-URGENT'; //5.3 s, 217 partiotions
+select * from MYDB.PUBLIC.ORDERS_CLUSTER where year(o_orderdate)=1996 and o_orderpriority='1-URGENT';// 4.6 s 9/235 partitions
