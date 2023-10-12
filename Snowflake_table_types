@@ -1,0 +1,73 @@
+// Finding table type
+show tables in schema MYDB.PUBLIC;
+
+// create transient table
+create or replace transient table MYDB.PUBLIC.transt_table(id number);
+create or replace temporary table MYDB.PUBLIC.temp_table(name string);
+
+//show tables types
+
+show tables in schema MYDB.PUBLIC;
+
+//Transient tables
+//create tansient schema
+create or replace transient schema mydb.trans_schema;
+
+show schemas in database mydb;
+
+//create table in tans_schem
+create or replace table MYDB.TRANS_SCHEMA.tran_table(name string); // transient table is created in thename tran_table
+
+//retention peroid for trasinr table 0-1 day
+alter table MYDB.TRANS_SCHEMA.TRAN_TABLE
+set data_retention_time_in_days=1;
+
+//we can restore transient table within 24 hours
+drop table MYDB.TRANS_SCHEMA.TRAN_TABLE;
+
+//restoring using time travel retention
+undrop table MYDB.TRANS_SCHEMA.TRAN_TABLE;
+
+*******************
+TEMPORARY TABLE
+*******************
+// CAN WE CREATE A TEMPORARY SCHEMA/DATABASE - NO
+create or replace temporary schema mydb.temp_schema;
+
+//create temporaryntabels and insert data
+create or replace temporary table MYDB.PUBLIC.temp_table(name string);
+
+insert into MYDB.PUBLIC.temp_table values('Ravi');
+insert into MYDB.PUBLIC.temp_table values('TARA');
+insert into MYDB.PUBLIC.temp_table values('GOPI');
+
+//RUN THIS IN 2 DIFFERENT WORKSHEETS
+SELECT * from MYDB.PUBLIC.TEMP_TABLE;
+
+//recreate the table and check the data
+create or replace temporary table MYDB.PUBLIC.temp_table(name string);
+//trying to restore the table contents 
+//try t undrop
+undrop table MYDB.PUBLIC.temp_table;
+
+//rename current table and undrop table-will get table dropped
+alter table  MYDB.PUBLIC.temp_table rename to  MYDB.PUBLIC.temp_table1;
+
+undrop table  MYDB.PUBLIC.temp_table;
+
+
+SELECT * from MYDB.PUBLIC.TEMP_TABLE;
+
+//Create a table with same name as permanet table
+create temporary table MYDB.PUBLIC.orders(id number);
+insert into MYDB.PUBLIC.orders values(20);
+insert into MYDB.PUBLIC.orders  values(40);
+insert into MYDB.PUBLIC.orders values(50);
+
+
+select * from  MYDB.PUBLIC.orders;
+
+show tables in schema mydb.public;
+
+
+
