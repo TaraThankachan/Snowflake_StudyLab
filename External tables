@@ -1,0 +1,71 @@
+use database mydb;
+
+//creating  schema
+create schema if not exists external_stages;
+
+
+// Publically acessibile staging area
+create or replace stage mydb.external_stages.sample_stage
+url='s3://bucketsnowflakes3';
+
+//Description of external stage// defaults properties
+desc stage MYDB.EXTERNAL_STAGES.SAMPLE_STAGE
+
+//List files in stage
+list @EXTERNAL_STAGES.sample_stage;
+
+//creating orders table
+create table if not exists MYDB.PUBLIC. orders(
+order_id varchar(30),
+amount int,
+profit int,
+quntity int,
+category varchar(30),
+subcategory varchar(30));
+
+select * from MYDB.PUBLIC.ORDERS;
+
+//Load data using copy command
+copy into MYDB.PUBLIC.ORDERS
+from @MYDB.EXTERNAL_STAGES.sample_stage
+file_format = (type=csv,field_delimiter=',',skip_header=1)
+files=('OrderDetails.csv');
+
+select * from MYDB.PUBLIC.ORDERS;
+
+//copy command with pattern for the file name
+copy into MYDB.PUBLIC.ORDERS
+from @MYDB.EXTERNAL_STAGES.sample_stage
+file_format = (type=csv,field_delimiter=',',skip_header=1)
+pattern='.*Order.*';
+
+**********
+FILE FORMATS
+************
+
+//creating schema to keep file format objects
+create schema if not exists mydb.file_formats;
+
+//creating file format objects
+create file format mydb.file_formats.csv_file_format;
+
+//see properties of the file format
+desc file format mydb.file_formats.csv_file_format;
+
+//create table
+
+create table if not exists MYDB.PUBLIC. orders_ex(
+order_id varchar(30),
+amount int,
+profit int,
+quntity int,
+category varchar(30),
+subcategory varchar(30));
+
+copy into MYDB.PUBLIC.ORDERS_ex
+from @MYDB.EXTERNAL_STAGES.sample_stage
+file_format = (format_name=mydb.file_formats.csv_file_format)
+files=('OrderDetails.csv');
+
+alter file format mydb.file_formats.csv_file_format
+set skip_header=1;
