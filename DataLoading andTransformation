@@ -1,0 +1,139 @@
+use database mydb;
+
+//creating table
+create or replace table MYDB.PUBLIC.loan_payment(
+"loan_id" string,
+loan_status string,
+principle string,
+terms string,
+effective_date string,
+due_date string,
+pay_off_time string,
+past_due_date string,
+age string,
+eduacation string,
+gender string
+);
+
+select * from  MYDB.PUBLIC.LOAN_PAYMENT;
+
+//loading data from s3 bucket
+copy into MYDB.PUBLIC.LOAN_PAYMENT
+from s3://bucketsnowflakes3/Loan_payments_data.csv
+file_format=(type=csv,field_delimiter=',',skip_header=1);
+
+//validate the data
+select * from MYDB.PUBLIC.LOAN_PAYMENT;
+
+//create schema for external stage
+create or replace schema mydb.external_stages;
+
+//publically accessible staging area
+create or replace stage MYDB.EXTERNAL_STAGES.aws_ext_stage
+url='s3://bucketsnowflakes3';
+
+//listing the files in external stage
+list @MYDB.EXTERNAL_STAGES.aws_ext_stage;
+
+//case 1: viewing data from external stage
+select $1, $2,$3, $4,$5,$6 from @MYDB.EXTERNAL_STAGES.AWS_EXT_STAGE/OrderDetails.csv;
+
+
+//giving alias  names to the feilds
+select $1 as OID, $2 as AMT, $3 as PFT, $4 as QNT, $5 as CAT, $6 as SUBCAT
+from @MYDB.EXTERNAL_STAGES.AWS_EXT_STAGE/OrderDetails.csv;
+
+//TRANSFORMING THE DATA WHILE LOADING
+
+//case 2: load only required fields
+create or replace table MYDB.PUBLIC.orders_ex(
+order_id varchar(30),
+amount int
+);
+copy into mydb.public.orders_ex
+from ( select s.$1,s.$2 from  @MYDB.EXTERNAL_STAGES.AWS_EXT_STAGE s )
+file_format = (type=csv,field_delimiter=',',skip_header=1)
+files=('OrderDetails.csv');
+
+select * from MYDB.PUBLIC.ORDERS_EX;
+
+
+//case 3: appling basic transformations by using functions
+
+
+create or replace table MYDB.PUBLIC.orders_ex(
+order_id varchar(30),
+profit int,
+amount int,
+cat_substr varchar(5),
+cat_concat varchar(60),
+pft_or_loss varchar(10)
+);
+
+//copy command using sql function
+
+copy into MYDB.PUBLIC.ORDERS_EX
+from (select s.$1,s.$3,s.$2, substring(s.$5,1,5),concat($5,$6),
+case when s.$3<=0 then 'loss' else 'profit' end
+from @MYDB.EXTERNAL_STAGES.AWS_EXT_STAGE s)
+file_format = (type=csv,field_delimiter=',',skip_header=1)
+files=('OrderDetails.csv');
+
+select * from MYDB.PUBLIC.ORDERS_EX;
+
+//case 4: loading sequence numbers in columns
+
+//create a sequence
+create sequence seq1;
+
+create or replace table MYDB.PUBLIC.loan_payment(
+"seq_num" number default seq1.nextval,
+"loan_id" string,
+"loan_status" string,
+"principle" string,
+"terms" string,
+"effective_date" string,
+"due_date" string,
+"pay_off_time" string,
+"past_due_date" string,
+"age" string,
+"education" string,
+"gender" string
+);
+
+
+//load data from s3 bucket
+copy into MYDB.PUBLIC.loan_payment("loan_id","loan_status","principle","terms","effective_date","due_date","pay_off_time","past_due_date","age","education","gender")
+from s3://bucketsnowflakes3/Loan_payments_data.csv
+file_format=(type=csv,field_delimiter=',',skip_header=1);
+
+//validate the data
+select * from MYDB.PUBLIC.LOAN_PAYMENT;
+
+
+//case 5: using auoto increment
+create or replace table MYDB.PUBLIC.loan_payment2(
+"loan_seq_num" number autoincrement start 1001 increment 1,
+"loan_id" string,
+"loan_status" string,
+"principle" string,
+"terms" string,
+"effective_date" string,
+"due_date" string,
+"pay_off_time" string,
+"past_due_date" string,
+"age" string,
+"education" string,
+"gender" string
+);
+
+//load data from s3 bucket
+copy into MYDB.PUBLIC.loan_payment2("loan_id","loan_status","principle","terms","effective_date","due_date","pay_off_time","past_due_date","age","education","gender")
+from s3://bucketsnowflakes3/Loan_payments_data.csv
+file_format=(type=csv,field_delimiter=',',skip_header=1);
+
+//validate the data
+select * from MYDB.PUBLIC.LOAN_PAYMENT2;
+
+
+
