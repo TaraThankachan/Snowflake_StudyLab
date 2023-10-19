@@ -1,0 +1,52 @@
+// Create storage integration object
+create or replace storage integration s3_int
+  TYPE = EXTERNAL_STAGE
+  STORAGE_PROVIDER = S3
+  ENABLED = TRUE 
+  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::414618234510:role/aws_s3_snowflake_intergration'
+  STORAGE_ALLOWED_LOCATIONS = ('s3://awss3buckettara/csv/', 's3://awss3buckettara/json/')
+  COMMENT = 'Integration with aws s3 buckets' ;
+
+//ARN-Amazon Resourse Names
+// S3 -- Simple Storage Service
+// IAM -- Identity and Access Management
+
+// Get external_id and update it in S3
+DESC integration s3_int;
+
+ // Create file format object
+CREATE OR REPLACE file format mydb.file_formats.csv_fileformat
+    type = csv
+    field_delimiter = ','
+    skip_header = 1
+    empty_field_as_null = TRUE;  
+
+// Create stage object with integration object & file format object
+CREATE OR REPLACE STAGE mydb.external_stages.aws_s3_csv
+    URL = 's3://awss3buckettara/csv/'
+    STORAGE_INTEGRATION = s3_int
+    FILE_FORMAT = mydb.file_formats.csv_fileformat ;
+
+//Listing files under your s3 buckets
+list @mydb.external_stages.aws_s3_csv;
+
+// Create a table first
+CREATE OR REPLACE TABLE mydb.public.customer_data (
+customerid NUMBER,
+Gender STRING,
+age STRING,
+annual_income number,
+spending_score number,
+profession string,
+work_expr number,
+family_size number
+); 
+
+
+// Use Copy command to load the files
+COPY INTO mydb.public.customer_data
+    FROM @mydb.external_stages.aws_s3_csv
+files=('Customers.csv');   
+ 
+//Validate the data
+SELECT * FROM mydb.public.customer_data;
